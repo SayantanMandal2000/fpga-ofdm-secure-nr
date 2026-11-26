@@ -16,7 +16,7 @@ jobs:
         run: |
           mkdir -p dist
           zip -r dist/ofdm-fpga-rtl-${GITHUB_REF_NAME}.zip rtl tb sw constraints scripts/vivado LICENSE README.md
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v3
         with:
           files: |
             dist/*.zip
