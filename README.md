@@ -137,8 +137,8 @@ If you use this work, please cite it with [`CITATION.cff`](CITATION.cff), and ci
 
 ## Authors
 
-- **Riya Das** (2025H1240213H), M.E. Communication, BITS Pilani, Hyderabad Campus: thesis author; Python models, experiments, documentation.
-- **Sayantan**: repository maintainer for the hardware side (RTL, testbench, Vivado flow, RTL CI).
+- **Riya Das** (2025H1240213H), M.E. Communication, BITS Pilani, Hyderabad Campus: thesis author.
+- **Sayantan**: ARM, Bengaluru.
 
 Supervisor: Prof. Subhendu Kr Sahoo.
 
