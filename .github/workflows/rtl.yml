@@ -31,7 +31,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y verilator
       - name: Lint
         run: make lint 2>&1 | tee lint.log
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: verilator-lint
@@ -59,7 +59,7 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y iverilog
       - name: System testbench
         run: make sim-top
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: system-regression

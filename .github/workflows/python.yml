@@ -35,7 +35,7 @@ jobs:
         run: pytest
       - name: Experiment smoke run (OFDM_QUICK=1)
         run: make quick PY=python
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: matrix.python-version == '3.12'
         with:
           name: quick-figures
