@@ -18,7 +18,7 @@ jobs:
     name: PS coefficient program (C)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build, run and check the golden coefficients
         run: make sw
 
@@ -26,7 +26,7 @@ jobs:
     name: RTL lint (Verilator)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Verilator
         run: sudo apt-get update && sudo apt-get install -y verilator
       - name: Lint
@@ -41,7 +41,7 @@ jobs:
     name: RTL unit test (Icarus, FFT)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Icarus Verilog
         run: sudo apt-get update && sudo apt-get install -y iverilog
       - name: FFT round trip
@@ -54,7 +54,7 @@ jobs:
     # Non-blocking until the two-slot-flush regression is confirmed (see docs/verification.md, "Known issues").
     continue-on-error: true
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install Icarus Verilog
         run: sudo apt-get update && sudo apt-get install -y iverilog
       - name: System testbench
