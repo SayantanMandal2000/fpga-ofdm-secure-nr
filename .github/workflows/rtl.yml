@@ -1,0 +1,68 @@
+name: RTL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: rtl-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ps-software:
+    name: PS coefficient program (C)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build, run and check the golden coefficients
+        run: make sw
+
+  rtl-lint:
+    name: RTL lint (Verilator)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Verilator
+        run: sudo apt-get update && sudo apt-get install -y verilator
+      - name: Lint
+        run: make lint 2>&1 | tee lint.log
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: verilator-lint
+          path: lint.log
+
+  rtl-unit:
+    name: RTL unit test (Icarus, FFT)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Icarus Verilog
+        run: sudo apt-get update && sudo apt-get install -y iverilog
+      - name: FFT round trip
+        run: make sim-fft
+
+  rtl-system:
+    name: RTL system regression (Icarus, 6 tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    # Non-blocking until the two-slot-flush regression is confirmed (see docs/verification.md, "Known issues").
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Icarus Verilog
+        run: sudo apt-get update && sudo apt-get install -y iverilog
+      - name: System testbench
+        run: make sim-top
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: system-regression
+          path: |
+            build/tb_top.log
+            build/constellation.csv

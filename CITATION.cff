@@ -1,0 +1,24 @@
+cff-version: 1.2.0
+message: "If you use this work, please cite it as below."
+title: "Secure OFDM baseband on FPGA: 5G NR phase compensation, digital-chaos encryption and conjugate-symmetric synchronisation"
+authors:
+  - family-names: Das
+    given-names: Riya
+    affiliation: "Birla Institute of Technology and Science, Pilani, Hyderabad Campus"
+version: 1.0.0
+date-released: 2026-11-26
+license: MIT
+type: software
+keywords: [OFDM, FPGA, Verilog, 5G NR, phase compensation, chaos encryption, timing synchronization, physical-layer security]
+references:
+  - type: conference-paper
+    title: "OFDM communication system based on FPGA"
+    authors:
+      - family-names: Tang
+        given-names: Z.
+    conference:
+      name: "3rd Asia-Pacific Conference on Communications Technology and Computer Science (ACCTCS)"
+    year: 2023
+    start: 666
+    end: 670
+    doi: 10.1109/ACCTCS58815.2023.00126
