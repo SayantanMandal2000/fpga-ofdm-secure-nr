@@ -1,0 +1,59 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+% state inputs
+\node[lbl] (yi) at (0,24) {$y_n$};
+\node[lbl] (xi) at (0,16) {$x_n$};
+\node[lbl] (zi) at (0,-16) {$z_n$};
+% ---- clock 1: products ----
+\node[op] (sr) at (22,-8) {$-$};  \node[lbl, above=0.4mm of sr] {$\rho$};
+\node[op] (m1) at (34,16) {$\times$};
+\node[op] (m2) at (34,0)  {$\times$};
+\node[op] (m3) at (34,-16) {$\times$};
+\node[lbl, below=0.6mm of m3] {$\beta$};
+\draw[sig] (yi) -| (m1.north);
+\draw[sig] (xi) -- (m1);
+\draw[sig] (24,16) |- (28,5) -| (m2.north);  \fill (24,16) circle (0.45);
+\draw[sig] (zi) -- (m3);
+\draw[sig] (12,-16) |- (sr.west);  \fill (12,-16) circle (0.45);
+\draw[sig] (sr.east) -| node[lbl,pos=0.3,below]{$\rho-z_n$} (m2.south);
+% pipeline registers (phase 0 -> 1)
+\node[reg, minimum height=6mm, minimum width=9mm] (pxy) at (50,16) {$p_{xy}$};
+\node[reg, minimum height=6mm, minimum width=9mm] (pxr) at (50,0) {$p_{xr}$};
+\node[reg, minimum height=6mm, minimum width=9mm] (pbz) at (50,-16) {$p_{\beta z}$};
+\draw[bus] (m1) -- coordinate[pos=0.5](w1) (pxy); \buswidth{w1}{64}
+\draw[bus] (m2) -- coordinate[pos=0.5](w2) (pxr); \buswidth{w2}{64}
+\draw[bus] (m3) -- coordinate[pos=0.5](w3) (pbz); \buswidth{w3}{64}
+% ---- phase 1: derivatives ----
+\node[blk, minimum width=26mm, minimum height=7mm] (dx) at (80,24) {$\dot x = 10\,(y_n - x_n)$};
+\node[blk, minimum width=26mm, minimum height=7mm] (dy) at (80,4)  {$\dot y = (p_{xr}\gg20) - y_n$};
+\node[blk, minimum width=26mm, minimum height=7mm] (dz) at (80,-12) {$\dot z = (p_{xy}\gg20)-(p_{\beta z}\gg20)$};
+\draw[sig] (pxr) -- (dy.west |- pxr);
+\draw[sig] (pxy.east) -- ++(4,0) |- ([yshift=1.5mm]dz.west);
+\draw[sig] (pbz.east) -- ++(4,0) |- ([yshift=-1.5mm]dz.west);
+\draw[sig] ($(dx.west)+(-8,0)$) node[lbl,left]{$x_n,y_n$} -- (dx.west);
+% ---- Euler update ----
+\node[op] (a1) at (106,24) {$+$};
+\node[op] (a2) at (106,4)  {$+$};
+\node[op] (a3) at (106,-12) {$+$};
+\draw[sig] (dx) -- node[lbl,above]{$\gg 7$} (a1);
+\draw[sig] (dy) -- node[lbl,above]{$\gg 7$} (a2);
+\draw[sig] (dz) -- node[lbl,above]{$\gg 7$} (a3);
+\node[reg, minimum width=11mm, minimum height=38mm, align=center] (st) at (122,6) {\scriptsize State\\\scriptsize reg.\\[2pt]\scriptsize $x,y,z$\\\scriptsize Q12.20\\\scriptsize 32 b};
+\draw[sig] (a1) -- (a1 -| st.west);
+\draw[sig] (a2) -- (a2 -| st.west);
+\draw[sig] (a3) -- (a3 -| st.west);
+\draw[sig] ($(a1)+(0,6)$) node[lbl,above]{$x_n$} -- (a1);
+\draw[sig] ($(a2)+(0,6)$) node[lbl,above]{$y_n$} -- (a2);
+\draw[sig] ($(a3)+(0,-6)$) node[lbl,below]{$z_n$} -- (a3);
+% ---- byte extraction ----
+\node[sec, minimum width=34mm, align=center] (by) at (122,-34) {Key byte\\\scriptsize $x[11{:}4]\oplus y[13{:}6]\oplus z[9{:}2]$\\[-1pt]\scriptsize $\oplus\{x[19{:}16],\,y[19{:}16]\}$};
+\draw[sig] (st.south) -- (by.north);
+\draw[bus] (by.east) -- ++(6,0) node[lbl,right,align=left]{8 b\\[-2pt]\tiny to FIFO};
+\draw[sig] (st.east) -- ++(4,0) |- ++(0,26) -| node[lbl,pos=0.25,above]{state fed back as $x_n,y_n,z_n$ for the next step} (-3,30) -- (-3,26);
+% phase brackets
+\draw[decorate,decoration={brace,amplitude=1.5mm,mirror}] (16,-24) -- (55,-24) node[midway,below=2mm,lbl]{clock 1: products (3 DSP multipliers)};
+\draw[decorate,decoration={brace,amplitude=1.5mm,mirror}] (64,-24) -- (128,-24) node[midway,below=2mm,lbl,xshift=-14mm]{clock 2: derivatives and Euler step, $dt=2^{-7}$};
+\end{tikzpicture}
+\end{document}

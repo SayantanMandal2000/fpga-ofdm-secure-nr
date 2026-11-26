@@ -1,0 +1,49 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+% ---- row 1: estimation ----
+\node[blk, minimum width=66mm, minimum height=13mm] (est) at (68,22)
+  {Timing and CFO estimation\\[1pt]\scriptsize sliding correlator $P(d)$, energy $R(d)$, frame finder $\to\hat d$\\[-1pt]\scriptsize CP correlator $S$ over 14 CPs + CORDIC $\to\hat\varepsilon$};
+% ---- row 2: data buffer + FFT ----
+\coordinate (in) at (-4,0);
+\node[blk, minimum width=19mm] (dly) at (14,0) {Delay line\\\scriptsize $2N=256$ samples};
+\node[blk, minimum width=21mm] (cpr) at (40,0) {CP removal\\\scriptsize window at $\hat d - 4$};
+\node[blk, minimum width=23mm] (nco) at (68,0) {CFO de-rotator\\\scriptsize $\times e^{-j2\pi\hat\varepsilon(n-\hat d)/N}$};
+\node[blk, minimum width=19mm] (fifo) at (96,0) {FIFO\\\scriptsize $512\times33$};
+\node[blk, minimum width=22mm] (fft) at (124,0) {FFT, $N{=}128$\\\scriptsize unscaled, saturating};
+% ---- row 3: per-subcarrier processing (right to left) ----
+\node[blk, minimum width=25mm] (wc) at (154,-24) {Equaliser coeff.\\\scriptsize $W(k)=X(k)\,Y^*(k)/|Y(k)|^2$\\[-1pt]\scriptsize 2$\times$17-step divider};
+\node[op, minimum size=6mm] (eqm) at (124,-24) {$\times$};
+\node[blk, minimum width=19mm] (der) at (98,-24) {Chaotic\\de-rotation $e^{-j\theta}$};
+\node[blk, minimum width=19mm] (dm) at (72,-24) {16-QAM\\hard demapper};
+\node[op] (xr) at (48,-24) {$\oplus$};
+\node[blk, minimum width=21mm] (ber) at (20,-24) {PRBS-15 checker\\\scriptsize bit / error counters};
+% ---- row 4 ----
+\node[sec, minimum width=22mm] (kp) at (48,-43) {Chaos stream P\\\scriptsize RX key};
+\node[sec, minimum width=22mm] (kq) at (74,-43) {Chaos stream Q\\\scriptsize RX key};
+\node[ctl, minimum width=19mm] (lut) at (98,-43) {sin/cos LUT\\\scriptsize phase $-8k_q$};
+\node[ctl, minimum width=25mm] (ms) at (154,-43) {Known training $X(k)$\\\scriptsize M-seq regeneration};
+% ---- wiring ----
+\draw[bus] (in) node[lbl,left]{$r[n]$} -- coordinate[pos=0.5](c0) (dly); \buswidth{c0}{$2{\times}16$}
+\draw[bus] (in) ++(3,0) |- (est.west);
+\draw[bus] (dly) -- (cpr);
+\draw[bus] (cpr) -- (nco);
+\draw[bus] (nco) -- (fifo);
+\draw[bus] (fifo) -- coordinate[pos=0.5](c1) (fft); \buswidth{c1}{33}
+\draw[sig] (40,15.5) -- node[lbl,left]{$\hat d$} (cpr.north);
+\draw[sig] (68,15.5) -- node[lbl,left]{$\hat d,\ \hat\varepsilon$} (nco.north);
+\draw[bus] (fft.south) -- node[lbl,right]{data $Y(k)$} (eqm.north);
+\draw[bus] (fft.east) -| node[lbl,pos=0.3,above]{training $Y(k)$} (wc.north);
+\draw[sig] (wc.west) -- node[lbl,above]{$W(k)$} (eqm.east);
+\draw[sig] (ms) -- (wc);
+\draw[bus] (eqm) -- node[lbl,above,pos=0.3]{$Z(k)$} (der);
+\draw[bus] (der) -- (dm);
+\draw[sig] (dm) -- coordinate[pos=0.5](c2) (xr); \buswidth{c2}{4}
+\draw[sig] (xr) -- coordinate[pos=0.5](c3) (ber); \buswidth{c3}{4}
+\draw[sig] (kp) -- node[lbl,right]{$k_p[3{:}0]$} (xr);
+\draw[sig] (kq) -- node[lbl,above]{$k_q$} (lut);
+\draw[sig] (lut) -- (der);
+\draw[ctrl] (116,-5.6) -- (116,-10) -- (111,-10) -- (111,-52) -- node[lbl,below]{FFT-output valid: pop; re-seed each slot} (74,-52) -- (kq.south);
+\end{tikzpicture}
+\end{document}

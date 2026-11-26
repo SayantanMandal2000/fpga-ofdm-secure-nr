@@ -1,0 +1,19 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+\node[ctl, minimum width=26mm, minimum height=18mm, align=center] (arm) at (0,0)
+ {ARM model\\[1pt]\scriptsize AXI4-Lite master\\\scriptsize keys, CTRL, $c_l$ from\\\scriptsize 38.211 formula};
+\node[blk, minimum width=30mm, minimum height=30mm, align=center] (dut) at (40,0)
+ {DUT: \textit{ofdm\_top}\\[3pt]\scriptsize TX $\to$ \textit{tx\_i/q}\\[1pt]\scriptsize RX $\leftarrow$ \textit{rx\_i/q}\\[3pt]\scriptsize 50\,MHz, 0.5\,ms slots};
+\node[ctl, minimum width=30mm, minimum height=30mm, align=center] (ch) at (88,0)
+ {Channel model\\[2pt]\scriptsize $e^{j\varphi_l}$, $f_0=3.5$\,GHz\\\scriptsize 2-tap multipath\\\scriptsize $0.3\angle45^\circ$, 3 samples\\\scriptsize CFO $\varepsilon=0.05$\\\scriptsize $\pm8$ LSB noise\\\scriptsize 77 idle samples};
+\node[ctl, minimum width=26mm, minimum height=18mm, align=center] (mon) at (40,-30)
+ {Monitors\\[1pt]\scriptsize BER, EVM, sync peak,\\\scriptsize CFO, per-symbol errors,\\\scriptsize constellation.csv};
+\draw[<->, line width=1pt] (arm) -- node[lbl,above]{AXI4-Lite} (dut);
+\draw[bus] ([yshift=7mm]dut.east) -- node[lbl,above]{\textit{tx\_i/q}, \textit{sym\_idx}} ([yshift=7mm]ch.west);
+\draw[bus] ([yshift=-7mm]ch.west) -- node[lbl,below]{\textit{rx\_i/q}} ([yshift=-7mm]dut.east);
+\draw[sig] (dut) -- node[lbl,right]{\textit{dbg\_i/q}, counters} (mon);
+\draw[sig] (arm.south) |- node[lbl,pos=0.3,left,align=right]{\tiny reads BER,\\[-2pt]\tiny peaks, CFO} (mon.west);
+\end{tikzpicture}
+\end{document}

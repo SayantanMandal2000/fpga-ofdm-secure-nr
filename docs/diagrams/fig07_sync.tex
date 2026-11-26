@@ -1,0 +1,81 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+\coordinate (in) at (-2,0);
+\coordinate (sp) at (4,0);
+% ---------- A: sliding-window correlation ----------
+\node[ctl, minimum width=15mm] (qs) at (18,32) {sign$(\cdot)$\\\scriptsize 1 b I/Q};
+\node[ctl, minimum width=15mm] (q4) at (18,20) {$\gg 7$, sat.\\\scriptsize 4 b I/Q};
+\node[blk, minimum width=19mm, minimum height=19mm] (sr) at (40,26) {Shift reg.\\\scriptsize $N\times2$ b\\\scriptsize $N\times8$ b\\[1pt]\scriptsize $r(d)\ldots r(d{+}N{-}1)$};
+\node[blk, minimum width=24mm, minimum height=19mm] (pp) at (66,26) {63 pairs\\\scriptsize $r(d{+}k)\,r(d{+}N{-}k)$\\\scriptsize $k=1..63$\\[1pt]\scriptsize adder trees $\to P(d)$};
+\node[blk, minimum width=21mm] (m0) at (93,32) {$M_0=|\mathrm{Re}P_1|{+}|\mathrm{Im}P_1|$};
+\node[blk, minimum width=21mm] (m1) at (93,20) {$M_1=|P(d)|^2$};
+\draw[sig] (qs) -- ([yshift=6mm]sr.west);
+\draw[sig] (q4) -- ([yshift=-6mm]sr.west);
+\draw[bus] (sr) -- (pp);
+\draw[bus] ([yshift=6mm]pp.east) -- (m0);
+\draw[bus] ([yshift=-6mm]pp.east) -- (m1);
+% ---------- B: energy ----------
+\node[ctl, minimum width=15mm] (ab) at (18,-1) {$|r_I|+|r_Q|$};
+\node[blk, minimum width=50mm] (racc) at (53,-1) {running sum over $N$ samples ($N$-deep delay)};
+\draw[sig] (ab) -- (racc);
+\draw[sig] (racc.east) -- node[lbl,above]{$R(d)$} ++(10,0) coordinate (rr);
+% ---------- C: CP correlator ----------
+\node[ctl, minimum width=15mm] (q8) at (18,-20) {$\gg 4$, sat.\\\scriptsize 8 b I/Q};
+\node[blk, minimum width=17mm] (dn) at (40,-20) {delay $N$};
+\node[op] (cm) at (57,-20) {$\times$};
+\node[lbl, above=0.6mm of cm] {conj};
+\node[blk, minimum width=21mm] (sl) at (76,-20) {sum over\\$L=28$ samples};
+\draw[sig] (q8) -- (dn);
+\draw[sig] (dn) -- node[lbl,above]{\tiny $r(n{-}N)$} (cm);
+\draw[sig] (q8.south) -- ++(0,-4) -| node[lbl,pos=0.25,above]{\tiny $r(n)$} (cm.south);
+\draw[sig] (cm) -- (sl);
+\draw[sig] (sl.east) -- node[lbl,above]{$S(n)$} ++(9,0) coordinate (ss);
+% input fan-out
+\draw[bus] (in) node[lbl,left]{$r[n]$} -- (sp);
+\draw[sig] (sp) |- (qs.west);
+\draw[sig] (sp) |- (q4.west);
+\draw[sig] (sp) |- (ab.west);
+\draw[sig] (sp) |- (q8.west);
+% ---------- frame finder ----------
+\node[blk, minimum width=34mm, minimum height=29mm, align=center] (ff) at (126,24)
+ {Frame finder\\[2pt]\scriptsize $M=$ \textit{metric\_sel} $?\,M_1:M_0$\\\scriptsize $M\ge TH$ and $R\ge E_{\min}$\\\scriptsize track max: $\hat d$, $S_{\mathrm{tr}}$\\\scriptsize lock after 80 samples\\\scriptsize re-arm at $\hat d+2244-32$};
+\draw[sig] (m0) -- (m0 -| ff.west);
+\draw[sig] (m1) -- (m1 -| ff.west);
+\draw[sig] (rr) -- ++(3,0) |- ([yshift=-11mm]ff.west);
+% ---------- CFO ----------
+\node[blk, minimum width=34mm, minimum height=12mm, align=center] (acc) at (126,-6)
+ {$S = S_{\mathrm{tr}} + \sum_{l=1}^{13} S(s_l)$\\\scriptsize (previous slot's data CPs)};
+\node[blk, minimum width=34mm, align=center] (cor) at (126,-24) {CORDIC, 16 iterations\\\scriptsize $\theta = \angle S = 2\pi\hat\varepsilon$};
+\draw[sig] (ss) -- ++(4,0) |- (acc.west);
+\draw[sig] (ff.south) -- node[lbl,right]{$S_{\mathrm{tr}},\hat d$} (acc.north);
+\draw[sig] (acc) -- (cor);
+% ---------- data buffer ----------
+\node[blk, minimum width=20mm] (db) at (20,-44) {delay line\\\scriptsize $2N$ samples};
+\node[blk, minimum width=24mm] (win) at (48,-44) {CP removal\\\scriptsize 14 windows of $N$};
+\node[blk, minimum width=26mm] (ph) at (78,-56) {phase acc.\\\scriptsize $\Delta\phi\,(n-\hat d)$, 24 b};
+\node[blk, minimum width=21mm] (rot) at (78,-44) {LUT + rotator};
+\node[blk, minimum width=17mm] (fo) at (101,-44) {FIFO\\\scriptsize $512\times33$};
+
+\draw[bus] (sp) |- (db.west);
+\draw[bus] (db) -- (win);
+\draw[bus] (win) -- (rot);
+\draw[sig] (ph) -- node[lbl,right]{\tiny phase} (rot);
+\draw[bus] (rot) -- (fo);
+\draw[bus] (fo.east) -- ++(6,0) node[lbl,right]{to FFT};
+\draw[sig] (cor.south) |- node[lbl,pos=0.62,above]{$\Delta\phi=-2\theta$} (ph.east);
+\draw[sig] (ff.east) -- (148,24) -- (148,-64) -- node[lbl,pos=0.35,below]{$\hat d$: start forwarding (held as pending while busy)} (48,-64) -- (win.south);
+% module groups
+\begin{scope}[on background layer]
+\node[grp, fit=(qs)(q4)(sr)(pp)(m0)(m1), inner sep=2.2mm] (gA) {};
+\node[grp, fit=(ab)(racc), inner sep=2.2mm] (gB) {};
+\node[grp, fit=(q8)(dn)(sl), inner sep=2.2mm, inner ysep=5mm] (gC) {};
+\node[grp, fit=(db)(win)(ph)(rot)(fo), inner sep=2.2mm] (gD) {};
+\end{scope}
+\node[grplbl, anchor=west] at ([xshift=2mm]gA.north west) {sliding-window correlation module};
+\node[grplbl, anchor=west] at ([xshift=2mm]gB.north west) {average-energy accumulation module};
+\node[grplbl, anchor=west] at ([xshift=2mm]gC.north west) {CP correlator (CFO)};
+\node[grplbl, anchor=west] at ([xshift=2mm]gD.south west) {data buffer module};
+\end{tikzpicture}
+\end{document}

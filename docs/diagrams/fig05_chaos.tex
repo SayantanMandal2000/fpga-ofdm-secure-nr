@@ -1,0 +1,36 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+\foreach \lane/\yy/\D/\out/\use in {P/0/D_P/k_p/{XOR with 4 data bits},Q/-26/D_Q/k_q/{I/Q rotation angle}}{
+  \node[op] (x1\lane) at (14,\yy) {$\oplus$};
+  \node[lbl, above=1.2mm of x1\lane] {$\D$};
+  \node[ctl, minimum width=14mm] (h1\lane) at (29,\yy) {xorshift64\\\scriptsize 4 rounds};
+  \node[op] (x2\lane) at (44,\yy) {$\oplus$};
+  \node[ctl, minimum width=14mm] (h2\lane) at (59,\yy) {xorshift64\\\scriptsize 4 rounds};
+  \node[ctl, minimum width=20mm, align=center] (sm\lane) at (80,\yy) {Seed map\\\scriptsize $x_0,y_0\in[1,2)$\\[-1pt]\scriptsize $z_0\in[20,21)$};
+  \node[sec, minimum width=21mm, minimum height=11mm] (lz\lane) at (105,\yy) {Lorenz core\\\scriptsize Q12.20, Euler\\[-1pt]\scriptsize 1 byte / 2 clk};
+  \node[blk, minimum width=17mm, minimum height=11mm] (ff\lane) at (130,\yy) {FIFO\\\scriptsize $256\times8$ b};
+  \draw[sig] (x1\lane) -- coordinate[pos=0.5](a\lane) (h1\lane); \buswidth{a\lane}{64}
+  \draw[sig] (h1\lane) -- (x2\lane);
+  \draw[sig] (x2\lane) -- (h2\lane);
+  \draw[sig] (h2\lane) -- coordinate[pos=0.5](b\lane) (sm\lane); \buswidth{b\lane}{60}
+  \draw[sig] (sm\lane) -- node[lbl,above]{seed} (lz\lane);
+  \draw[sig] (lz\lane) -- coordinate[pos=0.5](c\lane) (ff\lane); \buswidth{c\lane}{8}
+  \draw[bus] (ff\lane.east) -- ++(7,0) node[lbl,right,align=left]{$\out$\\\tiny \use};
+  \draw[ctrl] ([xshift=4mm]ff\lane.south) -- ++(0,-4.5) -| node[lbl,pos=0.25,below]{\textit{step\_en} = (count $<$ 254)} (lz\lane.south);
+}
+% key distribution
+\node[lbl, align=center] (key) at (-7,-13) {Key $K$\\\scriptsize 128 b\\\scriptsize (AXI4-Lite)};
+\coordinate (kl) at (3,-13);
+\draw[sig] (key.east) -- (kl);
+\draw[sig] (kl) |- node[lbl,pos=0.8,above]{$K[63{:}0]$} (x1P.west);
+\draw[sig] (kl) |- (x1Q.west);
+\draw (kl) -- (44,-13) coordinate (kj) node[lbl,above,pos=0.55]{$K[127{:}64]$};
+\draw[sig] (kj) -- (x2P.south);
+\draw[sig] (kj) -- (x2Q.north);
+% control
+\node[ctl, minimum width=50mm, anchor=north east] (ctl) at (142,-43) {\textit{reseed} (slot start): flush FIFOs, reload seeds\\\textit{pop}: QAM-mapper valid (TX) / FFT-output valid (RX)};
+\draw[ctrl] ([xshift=-14mm]ctl.north) -- node[lbl,left]{\tiny both lanes} ([xshift=-14mm]ctl.north |- lzQ.south);
+\end{tikzpicture}
+\end{document}

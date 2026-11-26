@@ -1,0 +1,32 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ofdm-model"
+version = "1.0.0"
+description = "Bit-accurate Python models of an FPGA OFDM baseband with 5G NR phase compensation, digital-chaos encryption and conjugate-symmetric synchronisation"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [{ name = "Riya Das" }]
+dependencies = ["numpy>=1.22", "scipy>=1.8", "matplotlib>=3.5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=7", "ruff>=0.4"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+[tool.ruff]
+line-length = 130
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+# The model and experiment code mirror the RTL line by line; compact multi-statement lines are intentional.
+ignore = ["E401", "E402", "E501", "E701", "E702", "E731", "E741", "F403", "F405", "I001"]

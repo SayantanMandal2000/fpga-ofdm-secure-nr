@@ -1,0 +1,47 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+% ---- row 1: key streams, LUT, training ----
+\node[sec, minimum width=22mm] (kp) at (26,20) {Chaos stream P\\\scriptsize Lorenz + FIFO};
+\node[sec, minimum width=22mm] (kq) at (56,20) {Chaos stream Q\\\scriptsize Lorenz + FIFO};
+\node[ctl, minimum width=21mm] (lut) at (94,20) {sin/cos LUT\\\scriptsize 1024 steps, Q2.14};
+\node[ctl, minimum width=25mm] (trn) at (148,20) {Training generator\\\scriptsize M-seq $x^9{+}x^5{+}1$\\[-1pt]\scriptsize Re: 16-QAM level, Im $=0$};
+% ---- row 2: bit / symbol path ----
+\node[blk, minimum width=18mm] (prbs) at (0,0) {PRBS-15\\\scriptsize $x^{15}{+}x^{14}{+}1$};
+\node[op] (xor) at (26,0) {$\oplus$};
+\node[blk, minimum width=20mm] (qam) at (56,0) {16-QAM\\Gray mapper};
+\node[blk, minimum width=21mm] (rot) at (94,0) {Complex rotator\\$\times\,e^{j\theta}$};
+\muxnode{mx}{122}{3.5}{14}{MUX}
+% ---- row 3 (right to left) ----
+\node[blk, minimum width=27mm, minimum height=12mm] (ifft) at (148,-24) {IFFT, $N{=}128$\\\scriptsize radix-2 DIT, scaled $1/N$\\[-1pt]\scriptsize convergent rounding};
+\node[blk, minimum width=26mm, minimum height=12mm] (cp)   at (110,-24) {CP insertion\\\scriptsize read $N{-}N_{\mathrm{CP}}..N{-}1$, $0..N{-}1$\\[-1pt]\scriptsize $N_{\mathrm{CP}}=36$ (sym\,0) / 32};
+\node[blk, minimum width=21mm, minimum height=12mm] (fifo) at (72,-24) {TX FIFO\\\scriptsize $512\times33$ bit};
+\node[blk, minimum width=21mm, minimum height=12mm] (pc)   at (34,-24) {Phase\\compensation $\times\,c_l$};
+% ---- row 4 ----
+\node[ctl, minimum width=27mm] (tmr) at (72,-44) {Slot timer (Bresenham)\\\scriptsize 2244 ticks / 25\,000 clk};
+\node[ctl, minimum width=21mm] (cr)  at (34,-44) {$c_0\ldots c_{13}$, 14:1 mux\\\scriptsize from AXI4-Lite};
+\node[ctl, minimum width=36mm] (fsm) at (148,-44) {Control FSM\\\scriptsize IDLE$\to$MAP$\to$WAIT$\to$OUT$\to$REL};
+% ---- wiring ----
+\draw[sig] (prbs) -- coordinate[pos=0.5](a1) (xor);   \buswidth{a1}{4}
+\draw[sig] (xor) -- coordinate[pos=0.5](a2) (qam);    \buswidth{a2}{4}
+\draw[bus] (qam) -- coordinate[pos=0.5](a3) (rot);    \buswidth{a3}{$2{\times}16$}
+\draw[bus] (rot.east) -- coordinate[pos=0.5](a4) (mx-in0); \buswidth{a4}{$2{\times}16$}
+\node[lbl, left=0.3mm] at (mx-in0) {\tiny 0};\node[lbl, left=0.3mm] at ($(mx-in1)+(0,0.8)$) {\tiny 1};
+\draw[sig] (kp) -- node[lbl,right]{$k_p[3{:}0]$} (xor);
+\draw[sig] (kq) -- node[lbl,above]{$k_q[6{:}0]$} node[lbl,below]{$\theta=2\pi k_q/128$} (lut);
+\draw[sig] (lut) -- node[lbl,right]{$\cos\theta,\ \sin\theta$} (rot);
+\draw[bus] (trn.west) -- (113,20) |- ($(mx-in1)+(0,0.8)$);
+\draw[bus] (mx-out) -- ++(7,0) node[lbl,above]{$X(k)$} -| (ifft.north);
+\draw[bus] (ifft) -- coordinate[pos=0.5](b1) (cp);  \buswidth{b1}{$2{\times}16$}
+\draw[bus] (cp) -- coordinate[pos=0.5](b2) (fifo);  \buswidth{b2}{33}
+\draw[bus] (fifo) -- coordinate[pos=0.5](b3) (pc);  \buswidth{b3}{$2{\times}16$}
+\draw[bus] (pc.west) -- ++(-10,0) node[lbl,left,align=right]{$\mathit{tx\_i}$\\$\mathit{tx\_q}$};
+\draw[ctrl] (tmr) -- node[lbl,right]{sample tick} (fifo);
+\draw[ctrl] (tmr.west) -- (52,-44) -- node[lbl,right,align=left]{0.5 / 10\,ms\\triggers} (52,-27) -- ([yshift=-3mm]pc.east);
+\draw[sig] (cr) -- node[lbl,right]{$c_l$} (pc);
+\draw[ctrl] (fsm.north) -- node[lbl,right]{start / release} (ifft.south);
+\draw[ctrl] (fsm.west) -- (110,-44) -- node[lbl,left]{CP length, read addr.} (cp.south);
+\draw[ctrl] (mx-sel) -- ++(0,-4) node[lbl,below]{sym\,0};
+\end{tikzpicture}
+\end{document}

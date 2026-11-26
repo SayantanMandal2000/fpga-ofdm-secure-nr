@@ -1,0 +1,50 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+% ---------- frame: 20 slots ----------
+\def\sw{7.8}
+\foreach \i in {0,...,19}{
+  \pgfmathsetmacro\x{\i*\sw}
+  \draw[fill=fillA] (\x,30) rectangle ++(\sw,5);
+}
+\draw[fill=fillD] (2*\sw,30) rectangle ++(\sw,5);
+\node[lbl] at (0.5*\sw,32.5) {\tiny 0}; \node[lbl] at (19.5*\sw,32.5) {\tiny 19};
+\node[lbl] at (2.5*\sw,32.5) {\tiny $s$};
+\draw[|<->|] (0,38) -- node[lbl,above]{frame = 20 slots = 10\,ms} (20*\sw,38);
+% zoom lines
+\draw[densely dotted] (2*\sw,30) -- (0,19);
+\draw[densely dotted] (3*\sw,30) -- (156,19);
+% ---------- slot: 14 symbols ----------
+% scale: 2244 samples -> 156 mm  => 0.06952 mm / sample
+\def\k{0.069519}
+\pgfmathsetmacro\cpz{36*\k} \pgfmathsetmacro\cpn{32*\k} \pgfmathsetmacro\nn{128*\k}
+\draw[fill=fillD] (0,12) rectangle ++(\cpz,7);
+\draw[fill=fillC] (\cpz,12) rectangle ++(\nn,7) node[pos=0.5,lbl]{\scriptsize TS};
+\foreach \l in {1,...,13}{
+  \pgfmathsetmacro\x{(164+(\l-1)*160)*\k}
+  \draw[fill=fillD] (\x,12) rectangle ++(\cpn,7);
+  \draw[fill=fillA] (\x+\cpn,12) rectangle ++(\nn,7) node[pos=0.5,lbl]{\scriptsize D\l};
+}
+\draw[|<->|] (0,8.5) -- node[lbl,below]{slot = 2244 samples = 0.5\,ms (25\,000 clocks at 50\,MHz)} (156,8.5);
+% CP annotations
+\draw[<-] (0.5*\cpz,19) -- ++(0,5) node[lbl,above,align=center]{\tiny CP$_0$ = 36};
+\pgfmathsetmacro\xa{164*\k}
+\draw[<-] (\xa+0.5*\cpn,19) -- ++(0,5) node[lbl,above]{\tiny CP = 32};
+\draw[<-] (\xa+\cpn+0.5*\nn,19) -- ++(3,5) node[lbl,above right=-1mm]{\tiny $N=128$};
+% ---------- trigger waveforms ----------
+\node[lbl,anchor=east] at (-1,0) {\textit{tx\_sos}};
+\node[lbl,anchor=east] at (-1,-7) {\textit{tx\_sof}};
+\node[lbl,anchor=east] at (-1,-14) {\textit{sym\_idx}};
+\draw (0,-2) -- (0,1.5) -- (1,1.5) -- (1,-2) -- (156,-2);
+\draw (0,-9) -- (0,-5.5) -- (1,-5.5) -- (1,-9) -- (156,-9);
+\node[lbl,right] at (2,-7.3) {\tiny high only in slot 0 of the frame (both pulses come from the playout timer)};
+\foreach \l/\x in {0/0,1/164,2/324,3/484,13/2084}{
+  \pgfmathsetmacro\xx{\x*\k}
+  \draw (\xx,-16) -- ++(0,3.5);
+  \node[lbl,anchor=west] at (\xx,-14.3) {\tiny \l};
+}
+\draw (0,-16) -- (156,-16) (0,-12.5) -- (156,-12.5);
+\node[lbl] at (85,-14.3) {\tiny $\cdots$};
+\end{tikzpicture}
+\end{document}

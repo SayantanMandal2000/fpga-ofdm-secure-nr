@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bundle RTL, testbench and PS software
+        run: |
+          mkdir -p dist
+          zip -r dist/ofdm-fpga-rtl-${GITHUB_REF_NAME}.zip rtl tb sw constraints scripts/vivado LICENSE README.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*.zip
+            docs/thesis/OFDM_FPGA_Thesis.pdf
+          generate_release_notes: true

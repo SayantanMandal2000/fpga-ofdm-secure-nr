@@ -1,0 +1,46 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+% ---------------- PL contents ----------------
+\node[ctl, minimum width=19mm, minimum height=11mm] (regs) at (40,-14) {AXI4-Lite\\register bank};
+% TX row
+\node[blk, minimum width=24mm, minimum height=11mm] (gen)  at (76,0)  {Symbol generator\\\scriptsize PRBS, encrypt, QAM,\\[-1pt]\scriptsize IFFT, CP insertion};
+\node[blk, minimum width=19mm, minimum height=11mm] (rate) at (106,0) {TX FIFO +\\0.5\,ms slot timer};
+\node[blk, minimum width=19mm, minimum height=11mm] (pc)   at (133,0) {NR phase\\compensation};
+\node[sec, minimum width=24mm] (ktx) at (76,14) {Chaos key streams\\\scriptsize 2$\times$Lorenz + FIFO};
+% RX row (flows right to left)
+\node[blk, minimum width=19mm, minimum height=11mm] (sync) at (133,-28) {Timing + CFO\\synchronisation};
+\node[blk, minimum width=19mm, minimum height=11mm] (eq)   at (106,-28) {FFT +\\one-tap equaliser};
+\node[blk, minimum width=24mm, minimum height=11mm] (dec)  at (76,-28) {Decrypt, demap,\\PRBS/BER checker};
+\node[sec, minimum width=24mm] (krx) at (76,-42) {Chaos key streams\\\scriptsize RX key};
+% data path
+\draw[bus] (ktx) -- node[lbl,right]{$k_p,\,k_q$} (gen);
+\draw[bus] (gen) -- (rate);
+\draw[bus] (rate) -- node[lbl,below]{$x[n]$} (pc);
+\draw[bus] (sync) -- (eq);
+\draw[bus] (eq) -- node[lbl,below]{$Z(k)$} (dec);
+\draw[bus] (krx) -- node[lbl,right]{$k_p,\,k_q$} (dec);
+\draw[ctrl] (rate.north) -- ++(0,2.5) -| node[lbl,pos=0.25,above]{0.5/10\,ms triggers} (pc.north);
+% register connections
+\draw[sig] (regs.north) |- node[lbl,pos=0.7,above]{128-bit TX key} (ktx.west);
+\draw[sig] ([xshift=-4mm]regs.north) |- (40-4,24) -| node[lbl,pos=0.25,above]{14 coefficients $c_l$ (Q2.14), CTRL} ([xshift=4mm]pc.north);
+\draw[sig] (regs.south) |- node[lbl,pos=0.7,below]{128-bit RX key} (krx.west);
+\draw[sig] (dec.west) -- (52,-28) |- node[lbl,pos=0.3,right]{BER, status} ([yshift=-3mm]regs.east);
+\coordinate (topc) at (40,26);
+% PL boundary
+\begin{scope}[on background layer]
+  \node[grp, fit=(regs)(ktx)(krx)(pc)(sync)(topc), inner xsep=4mm, inner ysep=3mm] (pl) {};
+\end{scope}
+\node[grplbl, anchor=west] at ([xshift=3mm]pl.north west) {Programmable logic (PL), 50\,MHz};
+% PS
+\node[ctl, minimum width=18mm, minimum height=24mm] (ps) at (6,-14)
+  {ARM processing\\system (PS)\\[2pt]\scriptsize computes $c_l$\\\scriptsize (pc\_coef.c),\\\scriptsize keys, control,\\\scriptsize status read-out};
+\draw[<->, line width=1pt] (ps.east) -- node[lbl,above,pos=0.4]{AXI4-Lite} (regs.west);
+% channel
+\node[ctl, minimum width=19mm, minimum height=40mm, anchor=west] (ch) at ($(pl.east)+(9,0)$)
+  {RF front end\\and channel\\[3pt]\scriptsize NR up-conversion\\\scriptsize phase $e^{j\varphi_l}$\\[1pt]\scriptsize CFO $\varepsilon$\\[1pt]\scriptsize multipath\\[1pt]\scriptsize noise};
+\draw[bus] (pc.east) -- node[lbl,above,pos=0.72]{DAC} (pc.east -| ch.west);
+\draw[bus] (sync.east -| ch.west) -- node[lbl,above,pos=0.28]{ADC} (sync.east);
+\end{tikzpicture}
+\end{document}

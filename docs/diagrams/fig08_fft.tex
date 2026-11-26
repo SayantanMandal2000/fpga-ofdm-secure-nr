@@ -1,0 +1,47 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+% memory
+\node[blk, minimum width=22mm, minimum height=30mm, align=center] (mem) at (40,0)
+ {Data memory\\[2pt]\scriptsize $\mathrm{Re}: N\times16$ b\\\scriptsize $\mathrm{Im}: N\times16$ b\\[2pt]\scriptsize in-place,\\\scriptsize natural-order\\\scriptsize result};
+\node[ctl, minimum width=18mm] (br) at (12,8) {bit-reverse\\\scriptsize address};
+\draw[bus] (-6,8) node[lbl,left,align=right]{$x[n]$\\\tiny \textit{in\_valid}} -- (br);
+\draw[bus] (br.east) -- node[lbl,above]{load} ([yshift=8mm]mem.west);
+% AGU, FSM, twiddle
+\node[ctl, minimum width=33mm, minimum height=13mm, align=center] (agu) at (46,-30)
+ {Address generator\\\scriptsize stage $s=0..6$, butterfly $b=0..63$, $h=2^s$\\[-1pt]\scriptsize top, top$+h$, twiddle $=(b \bmod h)\ll(6-s)$};
+\node[ctl, minimum width=25mm] (fsm) at (3,-30) {Control FSM\\\scriptsize IDLE$\to$LOAD$\to$CALC$\to$DONE};
+\node[ctl, minimum width=27mm, align=center] (tw) at (96,-30) {Twiddle ROM\\\scriptsize $N/2\times2\times16$ b, Q2.14\\[-1pt]\scriptsize $W=c\mp js$ (FFT / IFFT)};
+\draw[ctrl] (fsm) -- (agu);
+\draw[ctrl] (agu) -- node[lbl,right]{addresses} (mem);
+\draw[ctrl] (agu) -- node[lbl,above]{index} (tw);
+% fetch registers
+\node[reg, minimum width=9mm, minimum height=7mm] (ra) at (70,8) {$a$};
+\node[reg, minimum width=9mm, minimum height=7mm] (rb) at (70,-6) {$b$};
+\draw[bus] (mem.east |- ra) -- (ra);
+\draw[bus] (mem.east |- rb) -- (rb);
+% classic radix-2 butterfly
+\node[op, minimum size=7mm] (mul) at (88,-6) {$\times$};
+\node[blk, minimum width=16mm, minimum height=7mm] (rnd) at (104,-6) {round\\[-1pt]\scriptsize half-even};
+\coordinate (pa) at (116,8); \coordinate (pb) at (116,-6);
+\node[op] (ad) at (132,8) {$+$};
+\node[op] (sb) at (132,-6) {$-$};
+\draw[bus] (rb) -- (mul);
+\draw[sig] (tw.north) -- ++(0,3) -| node[lbl,pos=0.75,right]{$W$} (mul.south);
+\draw[bus] (mul) -- (rnd);
+\draw[bus] (ra) -- (pa) -- (ad);
+\draw[bus] (rnd) -- (pb) -- (sb);
+\draw[bus] (pa) -- (sb);
+\draw[bus] (pb) -- (ad);
+\fill (pa) circle (0.5); \fill (pb) circle (0.5);
+\node[lbl, above] at ($(rnd.east)!0.5!(pb)$) {$bW$};
+\node[blk, minimum width=22mm, minimum height=22mm, align=center] (sc) at (154,1) {scale $\gg1$ (TX)\\or none (RX)\\[2pt]\scriptsize round half-even\\\scriptsize saturate 16 b};
+\draw[bus] (ad) -- node[lbl,above]{$a{+}bW$} (ad -| sc.west);
+\draw[bus] (sb) -- node[lbl,below]{$a{-}bW$} (sb -| sc.west);
+\draw[bus] (sc.south) |- node[lbl,pos=0.7,below]{write back to top, top$+h$ (clock 2)} ([yshift=-11mm]mem.east);
+% read port
+\draw[bus] (mem.north) -- ++(0,9) node[lbl,above,align=center]{random-access read port \textit{rd\_addr}\\\tiny (CP insertion in TX, read-out in RX)};
+\node[lbl, align=left, anchor=west] at (114,-30) {\scriptsize one butterfly per 2 clocks\\\scriptsize $7\times64\times2=896$ clocks / symbol};
+\end{tikzpicture}
+\end{document}

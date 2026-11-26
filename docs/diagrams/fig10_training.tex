@@ -1,0 +1,29 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+% (a) conjugate-symmetric training and correlation pairs
+\node[lbl,anchor=west] at (-1,22) {(a)};
+\def\w{5.2}
+\foreach \i/\t in {0/{s_0},1/{s_1},2/{s_2},3/{\cdots},4/{s_{63}},5/{s_{64}},6/{s^*_{63}},7/{\cdots},8/{s^*_2},9/{s^*_1}}{
+  \draw[fill=fillA] (\i*\w+12,0) rectangle ++(\w,5);
+  \node[font=\tiny] at (\i*\w+12+\w/2,2.5) {$\t$};
+}
+\draw[fill=fillD] (0,0) rectangle (12,5); \node[font=\tiny] at (6,2.5) {CP$_0$};
+\foreach \a/\b/\h in {1/9/14,2/8/10,4/6/6}{
+  \draw[<->, line width=0.45pt] (\a*\w+12+\w/2,5) .. controls (\a*\w+12+\w/2,5+\h) and (\b*\w+12+\w/2,5+\h) .. (\b*\w+12+\w/2,5);
+}
+\node[lbl] at (12+5*\w,18) {$P(d)=\sum_{k=1}^{N/2-1} r(d{+}k)\,r(d{+}N{-}k)=\sum|x(k)|^2$ when aligned};
+\draw[|<->|] (12,-2.5) -- node[lbl,below]{window of $N=128$ samples starting at $d$; $s_{N-k}=s_k^*$} (12+10*\w,-2.5);
+% (b) CP correlation
+\node[lbl,anchor=west] at (-1,-14) {(b)};
+\begin{scope}[yshift=-28mm]
+\draw[fill=fillD] (0,0) rectangle (12,5); \node[font=\tiny] at (6,2.5) {CP};
+\draw[fill=fillA] (12,0) rectangle (12+10*\w-12,5); \node[font=\tiny] at (34,2.5) {symbol body};
+\draw[fill=fillD] (12+10*\w-12,0) rectangle (12+10*\w,5); \node[font=\tiny] at (12+10*\w-6,2.5) {copy};
+\draw[->, line width=0.45pt] (6,5) .. controls (6,12) and (12+10*\w-6,12) .. (12+10*\w-6,5);
+\node[lbl] at (30,12) {$S=\sum \mathrm{conj}\,r(n{-}N)\,r(n)=|S|\,e^{j2\pi\varepsilon}$};
+\draw[|<->|] (0,-2.5) -- node[lbl,below,align=center]{$N$ samples apart\\last $L=28$ CP samples used (ISI-free)} (12+10*\w-12,-2.5);
+\end{scope}
+\end{tikzpicture}
+\end{document}

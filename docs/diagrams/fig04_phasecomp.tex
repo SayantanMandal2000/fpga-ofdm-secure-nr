@@ -1,0 +1,38 @@
+\documentclass[border=1pt]{standalone}
+\usepackage{ieeefig}
+\begin{document}
+\begin{tikzpicture}[x=1mm,y=1mm]
+% ---------------- symbol position tracker ----------------
+\node[ctl, minimum width=26mm, minimum height=16mm, align=center] (trk) at (14,24)
+ {Symbol tracker\\[1pt]\scriptsize sample ctr \textit{samp} (9 b)\\[-1pt]\scriptsize symbol ctr \textit{sym} (4 b)\\[-1pt]\scriptsize $L_l = N + (l{=}0\,?\,36:32)$};
+\draw[sig] ($(trk.west)+(-9,4)$) node[lbl,left]{\textit{in\_valid}} -- ($(trk.west)+(0,4)$);
+\draw[sig] ($(trk.west)+(-9,0)$) node[lbl,left]{0.5\,ms trig.} -- (trk.west);
+\draw[sig] ($(trk.west)+(-9,-4)$) node[lbl,left]{10\,ms trig.} -- ($(trk.west)+(0,-4)$);
+% ---------------- coefficient bank + muxes ----------------
+\node[ctl, minimum width=17mm, minimum height=16mm] (bank) at (14,2) {$c_0\ldots c_{13}$\\\scriptsize 14$\times$32 b\\\scriptsize (AXI4-Lite)};
+\muxnode{m14}{38}{2}{16}{14:1}
+\muxnode{m2}{52}{5}{12}{2:1}
+\draw[bus] (bank.east) -- coordinate[pos=0.5](w1) (m14-in); \buswidth{w1}{$14{\times}32$}
+\draw[sig] (trk.east) -| node[lbl,pos=0.2,above]{$l$ = \textit{cur\_sym}} (m14-sel |- 0,9.5) -- (m14-top);
+\draw[bus] (m14-out) -- coordinate[pos=0.5](w2) (m2-in0); \buswidth{w2}{32}
+\node[lbl, align=center] (one) at (45,16) {$1+j0$\\\tiny (16384, 0)};
+\draw[sig] (one.south) |- (m2-in1);
+\draw[sig] ($(m2-sel)+(0,-5)$) node[lbl,below]{\textit{pc\_enable}} -- (m2-sel);
+% ---------------- complex multiplier ----------------
+\node[blk, minimum width=21mm, minimum height=24mm, align=center] (mul) at (78,-6)
+ {Stage 1\\[2pt]\scriptsize $a_r c_r,\ a_i c_i$\\\scriptsize $a_r c_i,\ a_i c_r$\\[2pt]\scriptsize 4 DSP48\\\scriptsize 16$\times$16 b};
+\node[blk, minimum width=23mm, minimum height=24mm, align=center] (add) at (106,-6)
+ {Stage 2\\[2pt]\scriptsize $y_r = a_r c_r - a_i c_i$\\\scriptsize $y_i = a_r c_i + a_i c_r$\\[2pt]\scriptsize round, $\gg 14$\\\scriptsize saturate to 16 b};
+\draw[bus] (m2-out) -- ++(4,0) |- node[lbl,pos=0.75,above]{$c_r,c_i$} ([yshift=6mm]mul.west);
+\draw[bus] (-6,-14) node[lbl,left,align=right]{$a_r,a_i$\\\tiny \textit{in\_re}, \textit{in\_im}} -- coordinate[pos=0.5](w3) ([yshift=-8mm]mul.west); \buswidth{w3}{$2{\times}16$}
+\draw[bus] (mul) -- coordinate[pos=0.5](w4) (add); \buswidth{w4}{$4{\times}32$}
+\draw[bus] (add.east) -- coordinate[pos=0.4](w5) ++(12,0) node[lbl,right,align=left]{$y_r, y_i$\\\tiny \textit{out\_re}, \textit{out\_im}}; \buswidth{w5}{$2{\times}16$}
+% ---------------- side-band delay ----------------
+\node[ctl, minimum width=49mm] (sb) at (92,-30) {2-clock delay: valid, sof, sos, symbol index};
+\draw[sig] (2,16) -- (2,-30) -- (sb.west);
+\draw[sig] (sb.east) -- ++(6,0) node[lbl,right,align=left]{\textit{out\_valid}, \textit{out\_sym\_idx}\\\tiny aligned with $y$};
+% pipeline register marks
+\foreach \x in {92,119.5}{ \draw[line width=1.6pt] (\x,7) -- (\x,-19); }
+\node[lbl] at (92,9.5) {reg}; \node[lbl] at (119.5,9.5) {reg};
+\end{tikzpicture}
+\end{document}

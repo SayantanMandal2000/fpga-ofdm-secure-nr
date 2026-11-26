@@ -1,0 +1,48 @@
+% ieeefig.sty -- common style for the OFDM-on-FPGA figure set (IEEE look)
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{ieeefig}
+\RequirePackage{mathptmx}          % Times text + math
+\RequirePackage{amsmath}
+\RequirePackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,calc,backgrounds,shapes.geometric,
+                shapes.misc,decorations.pathreplacing,matrix,patterns}
+
+% grayscale-safe tints (print in B/W, readable on screen)
+\definecolor{blk}{gray}{0.10}
+\definecolor{fillA}{gray}{0.94}    % datapath block
+\definecolor{fillB}{gray}{0.84}    % security / chaos block
+\definecolor{fillC}{gray}{1.00}    % control / plain
+\definecolor{fillD}{gray}{0.72}    % emphasis
+
+\tikzset{
+  >={Latex[length=1.5mm,width=1.1mm]},
+  every picture/.style={line width=0.55pt, font=\footnotesize, draw=blk},
+  blk/.style={draw=blk, fill=fillA, rectangle, minimum height=7.5mm, minimum width=15mm,
+              align=center, inner sep=2pt, font=\footnotesize},
+  sec/.style={blk, fill=fillB},
+  ctl/.style={blk, fill=fillC},
+  emph/.style={blk, fill=fillD},
+  reg/.style={draw=blk, fill=fillC, rectangle, minimum height=5mm, minimum width=5mm, inner sep=1pt, font=\scriptsize},
+  op/.style={draw=blk, fill=fillC, circle, minimum size=5mm, inner sep=0pt, font=\scriptsize},
+  mux/.style={draw=blk, fill=fillC, trapezium, trapezium angle=70, shape border rotate=270,
+              minimum height=12mm, minimum width=4mm, inner sep=1pt, font=\scriptsize},
+  grp/.style={draw=blk, dashed, rounded corners=2pt, inner sep=3.2mm, line width=0.5pt},
+  grplbl/.style={font=\scriptsize\itshape, inner sep=1pt, fill=white},
+  sig/.style={->, line width=0.55pt},
+  bus/.style={->, line width=1.0pt},
+  ctrl/.style={->, densely dashed, line width=0.5pt},
+  lbl/.style={font=\scriptsize, inner sep=1pt},
+  wlbl/.style={font=\tiny, inner sep=0.5pt},
+}
+% multiplexer: \muxnode{name}{x}{y}{height mm}{label}
+\newcommand{\muxnode}[5]{%
+  \coordinate (#1) at (#2,#3);
+  \draw[fill=fillC] ($(#1)+(-2.2,#4/2)$) -- ($(#1)+(2.2,#4/2-2.2)$) -- ($(#1)+(2.2,-#4/2+2.2)$) -- ($(#1)+(-2.2,-#4/2)$) -- cycle;
+  \coordinate (#1-in1) at ($(#1)+(-2.2,#4/4)$); \coordinate (#1-in0) at ($(#1)+(-2.2,-#4/4)$);
+  \coordinate (#1-out) at ($(#1)+(2.2,0)$); \coordinate (#1-sel) at ($(#1)+(0,-#4/2+1.1)$);
+  \coordinate (#1-top) at ($(#1)+(0,#4/2-1.1)$); \coordinate (#1-in) at ($(#1)+(-2.2,0)$);
+  \node[font=\tiny, rotate=90] at (#1) {#5};}
+% bus width tick:  \buswidth{coord}{width}
+\newcommand{\buswidth}[2]{%
+  \draw[line width=0.5pt] ($(#1)+(-0.8mm,-0.9mm)$) -- ($(#1)+(0.8mm,0.9mm)$);
+  \node[wlbl, above=1.1mm] at (#1) {#2};}
